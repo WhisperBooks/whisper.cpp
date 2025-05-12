@@ -266,7 +266,7 @@ This can result in significant speedup in encoder performance. Here are the inst
 
 - Build `whisper.cpp` with OpenVINO support:
 
-  Download OpenVINO package from [release page](https://github.com/openvinotoolkit/openvino/releases). The recommended version to use is [2023.0.0](https://github.com/openvinotoolkit/openvino/releases/tag/2023.0.0).
+  Download OpenVINO package from [release page](https://github.com/openvinotoolkit/openvino/releases). The recommended version to use is [2024.6.0](https://github.com/openvinotoolkit/openvino/releases/tag/2024.6.0). Ready to use Binaries of the required libraries can be found in the [OpenVino Archives](https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/)
 
   After downloading & extracting package onto your development system, set up required environment by sourcing setupvars script. For example:
 
@@ -599,7 +599,7 @@ main: processing './samples/a13.wav' (480000 samples, 30.0 sec), 4 threads, 1 pr
 ## Karaoke-style movie generation (experimental)
 
 The [whisper-cli](examples/cli) example provides support for output of karaoke-style movies, where the
-currently pronounced word is highlighted. Use the `-wts` argument and run the generated bash script.
+currently pronounced word is highlighted. Use the `-owts` argument and run the generated bash script.
 This requires to have `ffmpeg` installed.
 
 Here are a few _"typical"_ examples:
