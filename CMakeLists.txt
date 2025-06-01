@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5) # for add_link_options and implicit target directories.
+cmake_minimum_required(VERSION 3.5...4.0.2) # for add_link_options and implicit target directories.
 project("whisper.cpp" C CXX)
 project("whisper.cpp" VERSION 1.7.5)
 include(CheckIncludeFileCXX)
@@ -55,6 +55,58 @@ endif()
 
 option(BUILD_SHARED_LIBS "build shared libraries" ${BUILD_SHARED_LIBS_DEFAULT})
 
+### SBDBG ###
+if (POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
+endif()
+SET(GGML_BACKEND_DL OFF)
+SET(GGML_CPU_ALL_VARIANTS OFF)
+SET(WHISPER_BINDINGS_FLAT OFF)
+SET(WHISPER_SDL2 OFF)
+SET(GGML_RPC OFF)
+
+option(WHISPER_BACKEND_DL "build backends as dynamic libraries" OFF)
+if(WHISPER_BACKEND_DL)
+    if(APPLE)
+        set(GGML_NATIVE ON) 
+        set(WHISPER_COREML ON)
+        set(GGML_METAL ON)
+        set(GGML_METAL_USE_BF16 ON)
+    else()
+        SET(GGML_CPU_ALL_VARIANTS ON)
+    endif()
+    SET(GGML_BACKEND_DL ON)
+    SET(BUILD_SHARED_LIBS ON)
+    SET(WHISPER_BINDINGS_FLAT ON)
+    if(NOT 32bit)
+        SET(WHISPER_SDL2 ON)
+    endif()
+    SET(GGML_RPC ON)
+
+    MESSAGE(STATUS "")
+    MESSAGE(STATUS "")
+    MESSAGE(STATUS "Whisper Library Version = ${CMAKE_PROJECT_VERSION} with")
+    MESSAGE(STATUS "        WHISPER_BINDINGS_FLAT = ${WHISPER_BINDINGS_FLAT}")
+    MESSAGE(STATUS "        WHISPER_BACKEND_DL    = ${WHISPER_BACKEND_DL}")
+    MESSAGE(STATUS "        BUILD_SHARED_LIBS     = ${BUILD_SHARED_LIBS}")
+    MESSAGE(STATUS "        GGML_BACKEND_DL       = ${GGML_BACKEND_DL}")
+    MESSAGE(STATUS "        GGML_RPC              = ${GGML_RPC}")
+    MESSAGE(STATUS "        WHISPER_SDL2          = ${WHISPER_SDL2}")
+    if(APPLE)
+        MESSAGE(STATUS "        GGML_NATIVE           = ${GGML_NATIVE}")
+        MESSAGE(STATUS "        WHISPER_COREML        = ${WHISPER_COREML}")
+        MESSAGE(STATUS "        GGML_METAL            = ${GGML_METAL}")
+        MESSAGE(STATUS "        GGML_METAL_USE_BF16   = ${GGML_METAL_USE_BF16}")
+    else()
+        MESSAGE(STATUS "        GGML_CPU_ALL_VARIANTS = ${GGML_CPU_ALL_VARIANTS}")
+    endif()
+    MESSAGE(STATUS "")
+    MESSAGE(STATUS "")
+else()
+    MESSAGE(STATUS "============================= Skipping WHISPER_BACKEND_DL =============================")
+endif()
+### SBDBG ###
+
 #
 # option list
 #
@@ -66,6 +118,10 @@ option(WHISPER_ALL_WARNINGS_3RD_PARTY "whisper: enable all compiler warnings in 
 # build
 option(WHISPER_FATAL_WARNINGS  "whisper: enable -Werror flag"               OFF)
 option(WHISPER_USE_SYSTEM_GGML "whisper: use system-installed GGML library" OFF)
+
+# flat bindings
+option(WHISPER_BINDINGS_FLAT   "Add extra flat definitions to Whisper + GGML" ${WHISPER_BINDINGS_FLAT})
+option(GGML_BINDINGS_FLAT      "Add extra flat definitions to Examples" ${WHISPER_BINDINGS_FLAT})
 
 # sanitizers
 option(WHISPER_SANITIZE_THREAD    "whisper: enable thread sanitizer"    OFF)
@@ -79,7 +135,7 @@ option(WHISPER_BUILD_SERVER   "whisper: build server example" ${WHISPER_STANDALO
 
 # 3rd party libs
 option(WHISPER_CURL "whisper: use libcurl to download model from an URL" OFF)
-option(WHISPER_SDL2 "whisper: support for libSDL2" OFF)
+option(WHISPER_SDL2 "whisper: support for libSDL2" ${WHISPER_SDL2})
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(WHISPER_FFMPEG "whisper: support building and linking with ffmpeg libs (avcodec, swresample, ...)" OFF)

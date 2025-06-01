@@ -91,6 +91,12 @@ target_include_directories(json_cpp INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # examples
 
+if(WHISPER_BINDINGS_FLAT)
+    message(STATUS "Adding FLAT binding to examples")
+    add_compile_options(-DWHISPER_BINDINGS_FLAT)
+endif()
+
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 if (EMSCRIPTEN)
@@ -102,7 +108,9 @@ elseif(CMAKE_JS_VERSION)
     add_subdirectory(addon.node)
 else()
     add_subdirectory(cli)
+    add_subdirectory(cli2)
     add_subdirectory(bench)
+    add_subdirectory(bench2)
     add_subdirectory(server)
     add_subdirectory(quantize)
     add_subdirectory(vad-speech-segments)
