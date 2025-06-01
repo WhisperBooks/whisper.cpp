@@ -84,6 +84,7 @@ struct whisper_params {
     bool openblas        = false;
     bool use_cuda        = false;
     bool use_vulkan      = false;
+    bool use_opencl      = false;
     bool flash_attn      = false;
     bool suppress_nst    = false;
 
@@ -206,6 +207,7 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-ng"   || arg == "--no-gpu")          { params.use_gpu         = false; }
         else if (arg == "-cuda" || arg == "--nvidia")          { params.use_cuda        = true; }
         else if (arg == "-vk"   || arg == "--vulkan")          { params.use_vulkan      = true; }
+        else if (arg == "-opencl")                             { params.use_opencl      = true; }
         else if (arg == "-fa"   || arg == "--flash-attn")      { params.flash_attn      = true; }
         else if (arg == "-sns"  || arg == "--suppress-nst")    { params.suppress_nst    = true; }
         else if (                  arg == "--suppress-regex")  { params.suppress_regex  = ARGV_NEXT; }
@@ -290,6 +292,7 @@ static void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params
     fprintf(stderr, "  -ng,       --no-gpu            [%-7s] disable GPU\n",                                    params.use_gpu ? "false" : "true");
     fprintf(stderr, "  -cuda      --nvidia            [%-7s] Use CUDA\n",                                       params.use_cuda ? "false" : "true");
     fprintf(stderr, "  -vk        --vulkan            [%-7s] Use Vulkan\n",                                     params.use_vulkan ? "false" : "true");
+    fprintf(stderr, "  -opencl                        [%-7s] Use OpenCL\n",                                     params.use_opencl ? "false" : "true");
     fprintf(stderr, "  -fa,       --flash-attn        [%-7s] flash attention\n",                                params.flash_attn ? "true" : "false");
     fprintf(stderr, "  -sns,      --suppress-nst      [%-7s] suppress non-speech tokens\n",                     params.suppress_nst ? "true" : "false");
     fprintf(stderr, "  --suppress-regex REGEX         [%-7s] regular expression matching tokens to suppress\n", params.suppress_regex.c_str());
@@ -1046,6 +1049,11 @@ int main(int argc, char ** argv) {
         }
         if(params.use_vulkan) {
             if(backend_tryload("vulkan")) {
+                params.use_gpu = true;
+            }
+        }
+        if(params.use_opencl) {
+            if(backend_tryload("opencl")) {
                 params.use_gpu = true;
             }
         }
