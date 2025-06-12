@@ -222,10 +222,13 @@ if(WHISPER_BINDINGS_FLAT)
        )
     list(APPEND GGML_LIBRARY_SOURCES ${FLAT_GGML_SOURCES})
     add_compile_options(-DGGML_BINDINGS_FLAT)
-endif()
-
-add_library(ggml ${GGML_LIBRARY_SOURCES})
+    add_library(ggml ${GGML_LIBRARY_SOURCES})
+    add_library(ggml::ggml ALIAS ggml)
+else()
+add_library(ggml
+            ggml-backend-reg.cpp)
 add_library(ggml::ggml ALIAS ggml)
+endif()
 
 target_link_libraries(ggml PUBLIC ggml-base)
 
