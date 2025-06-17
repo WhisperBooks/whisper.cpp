@@ -73,6 +73,7 @@ struct whisper_params {
     bool output_jsn_full = false;
     bool output_lrc      = false;
     bool no_prints       = false;
+    bool csv_prints       = false;
     bool print_special   = false;
     bool print_colors    = false;
     bool print_confidence= false;
@@ -189,6 +190,7 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-ojf"  || arg == "--output-json-full"){ params.output_jsn_full = params.output_jsn = true; }
         else if (arg == "-of"   || arg == "--output-file")     { params.fname_out.emplace_back(ARGV_NEXT); }
         else if (arg == "-np"   || arg == "--no-prints")       { params.no_prints       = true; }
+        else if (arg == "-pcsv" || arg == "--print-csv")       { params.csv_prints      = true; }
         else if (arg == "-openvino")                           { params.openvino        = true; }
         else if (arg == "-blas")                               { params.openblas        = true; }
         else if (arg == "-ps"   || arg == "--print-special")   { params.print_special   = true; }
@@ -274,6 +276,7 @@ static void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params
     fprintf(stderr, "  -ojf,      --output-json-full  [%-7s] include more information in the JSON file\n",      params.output_jsn_full ? "true" : "false");
     fprintf(stderr, "  -of FNAME, --output-file FNAME [%-7s] output file path (without file extension)\n",      "");
     fprintf(stderr, "  -np,       --no-prints         [%-7s] do not print anything other than the results\n",   params.no_prints ? "true" : "false");
+    fprintf(stderr, "  -pcsv,     --print-csv         [%-7s] print summary results as CSV\n",                   params.csv_prints ? "true" : "false");
     fprintf(stderr, "  -openvino                      [%-7s] Use OpenVINO\n",                                   params.openvino ? "true" : "false");
     fprintf(stderr, "  -blas                          [%-7s] Use OpenBlas\n",                                   params.openblas ? "true" : "false");
     fprintf(stderr, "  -ps,       --print-special     [%-7s] print special tokens\n",                           params.print_special ? "true" : "false");
@@ -1397,7 +1400,18 @@ int main(int argc, char ** argv) {
     }
 
     if (!params.no_prints) {
-        whisper_print_timings(ctx);
+        if(!params.csv_prints) {
+            whisper_print_timings(ctx);
+        } else {
+            // fprintf(stderr, "fallbacks, %3d, %3d\n", ctx->state->n_fail_p, ctx->state->n_fail_h);
+            // fprintf(stderr, "mel_time, %9.2f\n", ctx->state->t_mel_us / 1000.0f);
+            fprintf(stderr, "metric, runs, per\n");
+            fprintf(stderr, "sample_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_sample_us, n_sample, 1e-3f * ctx->state->t_sample_us / n_sample);
+            fprintf(stderr, "encode_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_encode_us, n_encode, 1e-3f * ctx->state->t_encode_us / n_encode);
+            fprintf(stderr, "decode_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_decode_us, n_decode, 1e-3f * ctx->state->t_decode_us / n_decode);
+            fprintf(stderr, "batchd_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_batchd_us, n_batchd, 1e-3f * ctx->state->t_batchd_us / n_batchd);
+            fprintf(stderr, "prompt_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_prompt_us, n_prompt, 1e-3f * ctx->state->t_prompt_us / n_prompt);
+        }
     }
     whisper_free(ctx);
 
