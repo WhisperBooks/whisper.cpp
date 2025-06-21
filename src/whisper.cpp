@@ -8967,3 +8967,123 @@ static void whisper_log_callback_default(ggml_log_level level, const char * text
     fputs(text, stderr);
     fflush(stderr);
 }
+
+#ifdef WHISPER_BINDINGS_FLAT
+// The optional WHISPER_BINDINGS_FLAT code is of limited use for most
+// developers. The intended audience is those who are binding to
+// another language. 
+// C++ specific constructs such as, but not limited to, std:vector 
+// are used frequently but unavailable to non-C++ developers. 
+// As such it is placed at the end of source in recognition of its 
+// limited appeal
+
+// whisper_get_system_info_json
+// Returns system info as json, useful for language bindings
+// NOTE : While testing features->value always returned an int.
+//        Even though ints are invariably returned they may be
+//        some values that return other types.
+//        This function returns everything quoted (i.e. as a string)
+//        and leaves type-casting to the caller.
+//        This also removes the unlikely but plausible state of
+//        a string being returned unquoted (thus invalidating JSON)
+
+const char * whisper_get_system_info_json(void) {
+    static std::string s;
+
+    s  = "{";
+    s += "\"WHISPER\":{";
+    s += "\"COREML\":\""    + std::to_string(whisper_has_coreml())     + "\",";
+    s += "\"OPENVINO\":\""  + std::to_string(whisper_has_openvino())   + "\"}";
+
+    for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
+        auto * reg = ggml_backend_reg_get(i);
+        auto * get_features_fn = (ggml_backend_get_features_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_get_features");
+        if (get_features_fn) {
+            ggml_backend_feature * features = get_features_fn(reg);
+            s += ",\"";
+            s += ggml_backend_reg_name(reg);
+            s += "\":{";
+            auto first = true;
+            for (; features->name; features++) {
+                if(first) {
+                    first = false;
+                } else {
+                    s += ",";
+                }
+                s += "\"";
+                s += features->name;
+                s += "\":\"";
+                s += features->value;
+                s += "\"";
+            }
+            s += "}";
+        }
+    }
+    s += "}";
+
+    return s.c_str();
+}
+
+// whisper_get_state_from_context
+// Returns state from supplied context pointer
+// This is mainly a helper for non-C++ language bindings as whisper_context
+// has embedded C++ specific types (e.g. maps and vectors)
+// The returned whisper_state value can be treated as a an opaque object
+// that need merely be 'plugged-in' to the following and other existing
+// functions to obtain relevant information or functionality
+struct whisper_state * whisper_get_state_from_context(struct whisper_context * ctx) {
+    if (!ctx->state) {
+        return nullptr;
+    }
+
+    return ctx->state;
+}
+
+void whisper_set_context_state(struct whisper_context * ctx, struct whisper_state * state) {
+    ctx->state = state;
+}
+
+// whisper_get_activity_with_state
+// As the data is in a c++ specific struct
+struct whisper_activity * whisper_get_activity_with_state(struct whisper_state * state) {
+    if (state == nullptr) {
+        return nullptr;
+    }
+    whisper_activity * activity = new whisper_activity;
+
+    activity->sample_ms = 1e-3f * state->t_sample_us / std::max(1, state->n_sample);
+    activity->encode_ms = 1e-3f * state->t_encode_us / std::max(1, state->n_encode);
+    activity->decode_ms = 1e-3f * state->t_decode_us / std::max(1, state->n_decode);
+    activity->batchd_ms = 1e-3f * state->t_batchd_us / std::max(1, state->n_batchd);
+    activity->prompt_ms = 1e-3f * state->t_prompt_us / std::max(1, state->n_prompt);
+    activity->n_sample = state->n_sample;
+    activity->n_encode = state->n_encode;
+    activity->n_decode = state->n_decode;
+    activity->n_batchd = state->n_batchd;
+    activity->n_prompt = state->n_prompt;
+
+    return activity;
+}
+
+ggml_backend_t whisper_get_preferred_backend(struct whisper_state * state) {
+    if (state->backends.empty()) {
+        return nullptr;
+    }
+    
+    return state->backends[0];
+}
+
+ggml_backend_t whisper_get_indexed_backend(struct whisper_state* state, size_t i) {
+    if (state->backends.empty()) {
+        return nullptr;
+    }
+    if (i >= state->backends.size()) {
+        return nullptr;
+    }
+    return state->backends[i];
+}
+
+size_t whisper_get_backend_count(struct whisper_state* state) {
+    return state->backends.size();
+}
+#endif
