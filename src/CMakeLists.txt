@@ -115,6 +115,9 @@ set(WHISPER_LIBRARY_SOURCES
        
     list(APPEND WHISPER_LIBRARY_SOURCES ${FLAT_WHISPER_SOURCES})
     set(WHISPER_EXTRA_FLAGS ${WHISPER_EXTRA_FLAGS} -DWHISPER_BINDINGS_FLAT)
+    add_library(whisper
+                ${WHISPER_LIBRARY_SOURCES}
+                )
 else()
 	add_library(whisper
 	            ../include/whisper.h
