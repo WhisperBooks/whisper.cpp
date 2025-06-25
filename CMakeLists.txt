@@ -65,7 +65,7 @@ SET(WHISPER_BINDINGS_FLAT OFF)
 SET(WHISPER_SDL2 OFF)
 SET(GGML_RPC OFF)
 
-option(WHISPER_BACKEND_DL "build backends as dynamic libraries" OFF)
+option(WHISPER_BACKEND_DL "build backends as pascal friendly dynamic libraries" OFF)
 if(WHISPER_BACKEND_DL)
     if(APPLE)
         set(GGML_NATIVE ON) 
