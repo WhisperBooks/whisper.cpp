@@ -681,6 +681,7 @@ static ggml_backend_buffer_t ggml_backend_cuda_buffer_type_alloc_buffer(ggml_bac
 
     void * dev_ptr;
     cudaError_t err = ggml_cuda_device_malloc(&dev_ptr, size, buft_ctx->device);
+    printf("Allocating %.2f bytes for cuda\n", size / 1024.0 / 1024.0);
     if (err != cudaSuccess) {
         // clear the error
         (void)cudaGetLastError();
