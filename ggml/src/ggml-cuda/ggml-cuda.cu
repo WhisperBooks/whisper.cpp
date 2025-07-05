@@ -98,6 +98,7 @@ int ggml_cuda_get_device() {
 }
 
 static cudaError_t ggml_cuda_device_malloc(void ** ptr, size_t size, int device) {
+//    printf("Trying to allocate %.2f MiB for cuda\n", size / 1024.0 / 1024.0); //SBDBG
     ggml_cuda_set_device(device);
     cudaError_t err;
     if (getenv("GGML_CUDA_ENABLE_UNIFIED_MEMORY") != nullptr) {
@@ -681,7 +682,6 @@ static ggml_backend_buffer_t ggml_backend_cuda_buffer_type_alloc_buffer(ggml_bac
 
     void * dev_ptr;
     cudaError_t err = ggml_cuda_device_malloc(&dev_ptr, size, buft_ctx->device);
-    printf("Allocating %.2f bytes for cuda\n", size / 1024.0 / 1024.0);
     if (err != cudaSuccess) {
         // clear the error
         (void)cudaGetLastError();
