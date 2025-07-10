@@ -523,7 +523,7 @@ static ggml_backend_reg_t ggml_backend_load_best(const char * name, bool silent,
                 auto filename = entry.path().filename();
                 auto ext = entry.path().extension();
                 if (filename.native().find(file_prefix) == 0 && ext == file_extension) {
-                    printf("Trying to load %s\n", path_str(entry.path()).c_str()); // SBDBG
+                    // printf("Trying to load %s\n", path_str(entry.path()).c_str()); // SBDBG
                     dl_handle_ptr handle { dl_load_library(entry) };
                     if (!handle && !silent) {
                         GGML_LOG_ERROR("%s: failed to load %s\n", __func__, path_str(entry.path()).c_str());
