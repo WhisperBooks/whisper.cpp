@@ -113,6 +113,7 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
             endif()
 
             if (GGML_NATIVE)
+                message(STATUS "Adding GGML_NATIVE")
                 # -mcpu=native does not always enable all the features in some compilers,
                 # so we check for them manually and enable them if available
 
