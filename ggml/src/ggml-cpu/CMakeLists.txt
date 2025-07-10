@@ -3,6 +3,7 @@ function(ggml_add_cpu_backend_features cpu_name arch)
     # it can be built without the architecture flags
     # Since multiple variants of the CPU backend may be included in the same
     # build, using set_source_files_properties() to set the arch flags is not possible
+    message(STATUS "Adding cpu variant with features ${cpu_name}-${arch}")
     set(GGML_CPU_FEATS_NAME ${cpu_name}-feats)
     add_library(${GGML_CPU_FEATS_NAME} OBJECT ggml-cpu/arch/${arch}/cpu-feats.cpp)
     target_include_directories(${GGML_CPU_FEATS_NAME} PRIVATE . ../include)
