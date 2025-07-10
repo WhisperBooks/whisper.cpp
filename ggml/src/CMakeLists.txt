@@ -393,7 +393,6 @@ ggml_add_backend(Vulkan)
 ggml_add_backend(OpenCL)
 
 foreach (target ggml-base ggml)
-    message(STATUS "building ${target}")
     target_include_directories(${target} PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include> $<INSTALL_INTERFACE:include>)
     target_compile_features   (${target} PRIVATE c_std_11 cxx_std_17) # don't bump
 endforeach()

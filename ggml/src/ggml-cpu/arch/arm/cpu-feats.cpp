@@ -16,6 +16,8 @@
 #define HWCAP2_SME (1 << 23)
 #endif
 
+#warning "In ARM feats"
+
 struct aarch64_features {
     // has_neon not needed, aarch64 has NEON guaranteed
     bool has_dotprod     = false;
