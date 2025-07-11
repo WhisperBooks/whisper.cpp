@@ -3,6 +3,13 @@ include("../cmake/common.cmake")
 
 add_compile_definitions(GGML_SCHED_MAX_COPIES=${GGML_SCHED_MAX_COPIES})
 
+# GCC < 14 does not support ARM SME
+set(GGML_SKIP_SME_BUILD OFF)
+if((${CMAKE_CXX_COMPILER_ID} STREQUAL GNU) AND (${CMAKE_CXX_COMPILER_VERSION} LESS 14.0.0))
+    SET(GGML_SKIP_SME_BUILD ON)
+    message(WARNING "GCC < 14 will not compile Arm9 SME extensions")
+endif()
+
 # enable libstdc++ assertions for debug builds
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_compile_definitions($<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>)
@@ -343,8 +350,10 @@ if (GGML_CPU_ALL_VARIANTS)
             ggml_add_cpu_backend_variant(armv8.2_3    DOTPROD FP16_VECTOR_ARITHMETIC SVE)
             ggml_add_cpu_backend_variant(armv8.6_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8)
             ggml_add_cpu_backend_variant(armv8.6_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2)
-            ggml_add_cpu_backend_variant(armv9.2_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SME)
-            ggml_add_cpu_backend_variant(armv9.2_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2 SME)
+            if(NOT GGML_SKIP_SME_BUILD)
+                ggml_add_cpu_backend_variant(armv9.2_1    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SME)
+                ggml_add_cpu_backend_variant(armv9.2_2    DOTPROD FP16_VECTOR_ARITHMETIC SVE MATMUL_INT8 SVE2 SME)
+            endif()
         elseif (CMAKE_SYSTEM_NAME MATCHES "Android")
             message(STATUS "building Android Linux GGML_CPU_ALL_VARIANTS")
             # Android-specific backends with SoC-compatible feature sets
