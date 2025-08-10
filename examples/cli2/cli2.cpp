@@ -24,8 +24,6 @@
 #include <windows.h>
 #endif
 
-int32_t global_total_tokens = 0;
-
 // helper function to replace substrings
 static void replace_all(std::string & s, const std::string & search, const std::string & replace) {
     for (size_t pos = 0; ; pos += replace.length()) {
@@ -83,11 +81,12 @@ struct whisper_params {
     bool no_timestamps   = false;
     bool log_score       = false;
     bool use_gpu         = true;
-    bool openvino        = false;
-    bool openblas        = false;
-    bool use_cuda        = false;
-    bool use_vulkan      = false;
-    bool use_opencl      = false;
+    bool token_stats     = false; // sb
+    bool openvino        = false; // sb
+    bool openblas        = false; // sb
+    bool use_cuda        = false; // sb
+    bool use_vulkan      = false; // sb
+    bool use_opencl      = false; // sb
     bool flash_attn      = false;
     bool suppress_nst    = false;
 
@@ -165,7 +164,7 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-d"    || arg == "--duration")        { params.duration_ms     = std::stoi(ARGV_NEXT); }
         else if (arg == "-mc"   || arg == "--max-context")     { params.max_context     = std::stoi(ARGV_NEXT); }
         else if (arg == "-ml"   || arg == "--max-len")         { params.max_len         = std::stoi(ARGV_NEXT); }
-        else if (arg == "-cpu"  || arg == "--use-cpu")         { params.cpu             = std::stoi(ARGV_NEXT); }
+        else if (arg == "-cpu"  || arg == "--use-cpu")         { params.cpu             = std::stoi(ARGV_NEXT); } //sb
         else if (arg == "-bo"   || arg == "--best-of")         { params.best_of         = std::stoi(ARGV_NEXT); }
         else if (arg == "-bs"   || arg == "--beam-size")       { params.beam_size       = std::stoi(ARGV_NEXT); }
         else if (arg == "-ac"   || arg == "--audio-ctx")       { params.audio_ctx       = std::stoi(ARGV_NEXT); }
@@ -200,6 +199,7 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (                  arg == "--print-confidence"){ params.print_confidence= true; }
         else if (arg == "-pp"   || arg == "--print-progress")  { params.print_progress  = true; }
         else if (arg == "-nt"   || arg == "--no-timestamps")   { params.no_timestamps   = true; }
+        else if (arg == "-ts"   || arg == "--token-stats")     { params.token_stats     = true; }
         else if (arg == "-l"    || arg == "--language")        { params.language        = whisper_param_turn_lowercase(ARGV_NEXT); }
         else if (arg == "-dl"   || arg == "--detect-language") { params.detect_language = true; }
         else if (                  arg == "--prompt")          { params.prompt          = ARGV_NEXT; }
@@ -253,7 +253,7 @@ static void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params
     fprintf(stderr, "  -ml N,     --max-len N         [%-7d] maximum segment length in characters\n",           params.max_len);
     fprintf(stderr, "  -sow,      --split-on-word     [%-7s] split on word rather than on token\n",             params.split_on_word ? "true" : "false");
     fprintf(stderr, "  -bo N,     --best-of N         [%-7d] number of best candidates to keep\n",              params.best_of);
-    fprintf(stderr, "  -cpu N,    --use-cpu N         [%-7d] Use Specific CPU (7=highest, 0=best)\n",           params.cpu);
+    fprintf(stderr, "  -cpu N,    --use-cpu N         [%-7d] Use Specific CPU (7=highest, 0=best)\n",           params.cpu); //sb
     fprintf(stderr, "  -bs N,     --beam-size N       [%-7d] beam size for beam search\n",                      params.beam_size);
     fprintf(stderr, "  -ac N,     --audio-ctx N       [%-7d] audio context size (0 - all)\n",                   params.audio_ctx);
     fprintf(stderr, "  -wt N,     --word-thold N      [%-7.2f] word timestamp probability threshold\n",         params.word_thold);
@@ -286,6 +286,7 @@ static void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params
     fprintf(stderr, "             --print-confidence  [%-7s] print confidence\n",                               params.print_confidence ? "true" : "false");
     fprintf(stderr, "  -pp,       --print-progress    [%-7s] print progress\n",                                 params.print_progress ? "true" : "false");
     fprintf(stderr, "  -nt,       --no-timestamps     [%-7s] do not print timestamps\n",                        params.no_timestamps ? "true" : "false");
+    fprintf(stderr, "  -ts,       --token-stats       [%-7s] gather token stats\n",                             params.token_stats ? "true" : "false");
     fprintf(stderr, "  -l LANG,   --language LANG     [%-7s] spoken language ('auto' for auto-detect)\n",       params.language.c_str());
     fprintf(stderr, "  -dl,       --detect-language   [%-7s] exit after automatically detecting language\n",    params.detect_language ? "true" : "false");
     fprintf(stderr, "             --prompt PROMPT     [%-7s] initial prompt (max n_text_ctx/2 tokens)\n",       params.prompt.c_str());
@@ -392,7 +393,7 @@ static void whisper_print_segment_callback(struct whisper_context * ctx, struct 
             t1 = whisper_full_get_segment_t1(ctx, i);
         }
 
-        if (!params.no_timestamps) {
+        if (!params.no_timestamps && !params.token_stats) {
             printf("[%s --> %s]  ", to_timestamp(t0).c_str(), to_timestamp(t1).c_str());
         }
 
@@ -437,10 +438,12 @@ static void whisper_print_segment_callback(struct whisper_context * ctx, struct 
                 printf("%s%s%s%s", speaker.c_str(), k_styles[style_idx].c_str(), text, "\033[0m");
             }
         } else {
-            const char * text = whisper_full_get_segment_text(ctx, i);
+            if (!params.token_stats) {
+                const char * text = whisper_full_get_segment_text(ctx, i);
 
-            if (!params.no_timestamps) {
-                printf("%s%s", speaker.c_str(), text);
+                if (!params.no_timestamps) {
+                    printf("%s%s", speaker.c_str(), text);
+                }
             }
         }
 
@@ -451,8 +454,10 @@ static void whisper_print_segment_callback(struct whisper_context * ctx, struct 
         }
 
         // with timestamps or speakers: each segment on new line
-        if (!params.no_timestamps || params.diarize) {
-            printf("\n");
+        if (!params.token_stats) {
+            if (!params.no_timestamps || params.diarize) {
+                printf("\n");
+            }
         }
 
         fflush(stdout);
@@ -620,14 +625,16 @@ static void output_score(struct whisper_context * ctx, std::ofstream & fout, con
     }
 }
 
-static void count_stuff(struct whisper_context * ctx) {
+static int32_t count_stuff(struct whisper_context * ctx) {
+    int32_t token_count = 0;
     const int n_segments = whisper_full_n_segments(ctx);
     for (int i = 0; i < n_segments; ++i) {
         const int n = whisper_full_n_tokens(ctx, i);
         for (int j = 0; j < n; ++j) {
-            global_total_tokens++;
+            token_count++;
         }
     }
+    return token_count;
 }
 static void output_json(
              struct whisper_context * ctx,
@@ -1048,17 +1055,17 @@ int main(int argc, char ** argv) {
     }
 
     // whisper init
+    int32_t total_tokens = 0;
 
     bool using_bindings_flat = false;
-    
-    // global_total_tokens = 0;
-    
+     
     #ifdef WHISPER_BINDINGS_FLAT
     fprintf(stderr, "+++ WHISPER_BINDINGS_FLAT +++\n");
     using_bindings_flat = true;
     if(params.use_gpu) {
         whisper_flat_backend_load_all();
     } else {
+        params.token_stats = true;
         if(params.use_cuda) {
             if(backend_tryload("cuda")) {
                 params.use_gpu = true;
@@ -1407,7 +1414,9 @@ int main(int argc, char ** argv) {
 
 #undef output_ext
 #undef output_func
-            count_stuff(ctx);
+            if(params.token_stats) {
+                total_tokens += count_stuff(ctx);
+            }
             if (fout_factory.is_stdout && !fout_factory.used_stdout) {
                 fprintf(stderr, "warning: '--output-file -' used without any other '--output-*'");
             }
@@ -1420,30 +1429,23 @@ int main(int argc, char ** argv) {
             fprintf(stderr, "\n\n");
             if(state == nullptr) {
                 fprintf(stderr, "State not available\n");
-                fprintf(stderr, "global_total_tokens = %d\n", global_total_tokens);
                 whisper_print_timings(ctx);
             } else {
                 struct whisper_activity *act;
                 act = whisper_flat_get_activity_with_state(state);
-                fprintf(stderr, "total time = %9.3f\n", (act->total_ms / 1000.0));
-                fprintf(stderr, "tokens per second = %0.3f (%d)\n\n", global_total_tokens / (act->total_ms / 1000.0), global_total_tokens);
-                fprintf(stderr, "sample_time, %9.2f (%d)\n", act->sample_ms, act->n_sample);
-                fprintf(stderr, "encode_time, %9.2f (%d)\n", act->encode_ms, act->n_encode);
-                fprintf(stderr, "decode_time, %9.2f (%d)\n", act->decode_ms, act->n_decode);
-                fprintf(stderr, "batchd_time, %9.2f (%d)\n", act->batchd_ms, act->n_batchd);
-                fprintf(stderr, "prompt_time, %9.2f (%d)\n", act->prompt_ms, act->n_prompt);
+                fprintf(stderr, "Timings (model load not included)\n\n");
+                fprintf(stderr, "fallbacks   = %3dp, %3dh\n", act->n_fail_p, act->n_fail_h);
+                fprintf(stderr, "mel_time    = %9.2f ms \n", act->mel_ms);
+                fprintf(stderr, "sample_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->sample_ms, act->n_sample, act->sample_ms / act->n_sample);
+                fprintf(stderr, "encode_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->encode_ms, act->n_encode, act->encode_ms / act->n_encode);
+                fprintf(stderr, "decode_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->decode_ms, act->n_decode, act->decode_ms / act->n_decode);
+                fprintf(stderr, "batchd_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->batchd_ms, act->n_batchd, act->batchd_ms / act->n_batchd);
+                fprintf(stderr, "prompt_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->prompt_ms, act->n_prompt, act->prompt_ms / act->n_prompt);
+                fprintf(stderr, "total time  = %9.3f secs\n", (act->total_ms / 1000.0));
+                if(params.token_stats) {
+                    fprintf(stderr, "tokens per second = %9.3f (%6d)\n\n", total_tokens / (act->total_ms / 1000.0), total_tokens);
+                }
 
-//              fprintf(stderr, "fallbacks, %3d, %3d\n", ctx->state->n_fail_p, ctx->state->n_fail_h);
-//              fprintf(stderr, "mel_time, %9.2f\n", ctx->state->t_mel_us / 1000.0f);
-                whisper_print_timings(ctx);
-            /*
-            fprintf(stderr, "metric, runs, per\n");
-            fprintf(stderr, "sample_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_sample_us, n_sample, 1e-3f * ctx->state->t_sample_us / n_sample);
-            fprintf(stderr, "encode_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_encode_us, n_encode, 1e-3f * ctx->state->t_encode_us / n_encode);
-            fprintf(stderr, "decode_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_decode_us, n_decode, 1e-3f * ctx->state->t_decode_us / n_decode);
-            fprintf(stderr, "batchd_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_batchd_us, n_batchd, 1e-3f * ctx->state->t_batchd_us / n_batchd);
-            fprintf(stderr, "prompt_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_prompt_us, n_prompt, 1e-3f * ctx->state->t_prompt_us / n_prompt);
-            */
             }
         }
     }
