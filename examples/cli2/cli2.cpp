@@ -24,6 +24,8 @@
 #include <windows.h>
 #endif
 
+int32_t global_total_tokens = 0;
+
 // helper function to replace substrings
 static void replace_all(std::string & s, const std::string & search, const std::string & replace) {
     for (size_t pos = 0; ; pos += replace.length()) {
@@ -83,7 +85,6 @@ struct whisper_params {
     bool use_gpu         = true;
     bool openvino        = false;
     bool openblas        = false;
-    bool use_sycl        = false;
     bool use_cuda        = false;
     bool use_vulkan      = false;
     bool use_opencl      = false;
@@ -194,7 +195,6 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-pcsv" || arg == "--print-csv")       { params.csv_prints      = true; }
         else if (arg == "-openvino")                           { params.openvino        = true; }
         else if (arg == "-blas")                               { params.openblas        = true; }
-        else if (arg == "-sycl")                               { params.use_sycl        = true; }
         else if (arg == "-ps"   || arg == "--print-special")   { params.print_special   = true; }
         else if (arg == "-pc"   || arg == "--print-colors")    { params.print_colors    = true; }
         else if (                  arg == "--print-confidence"){ params.print_confidence= true; }
@@ -281,7 +281,6 @@ static void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params
     fprintf(stderr, "  -pcsv,     --print-csv         [%-7s] print summary results as CSV\n",                   params.csv_prints ? "true" : "false");
     fprintf(stderr, "  -openvino                      [%-7s] Use OpenVINO\n",                                   params.openvino ? "true" : "false");
     fprintf(stderr, "  -blas                          [%-7s] Use OpenBlas\n",                                   params.openblas ? "true" : "false");
-    fprintf(stderr, "  -sycl                          [%-7s] Use SYCL\n",                                       params.use_sycl ? "true" : "false");
     fprintf(stderr, "  -ps,       --print-special     [%-7s] print special tokens\n",                           params.print_special ? "true" : "false");
     fprintf(stderr, "  -pc,       --print-colors      [%-7s] print colors\n",                                   params.print_colors ? "true" : "false");
     fprintf(stderr, "             --print-confidence  [%-7s] print confidence\n",                               params.print_confidence ? "true" : "false");
@@ -621,6 +620,15 @@ static void output_score(struct whisper_context * ctx, std::ofstream & fout, con
     }
 }
 
+static void count_stuff(struct whisper_context * ctx) {
+    const int n_segments = whisper_full_n_segments(ctx);
+    for (int i = 0; i < n_segments; ++i) {
+        const int n = whisper_full_n_tokens(ctx, i);
+        for (int j = 0; j < n; ++j) {
+            global_total_tokens++;
+        }
+    }
+}
 static void output_json(
              struct whisper_context * ctx,
                       std::ofstream & fout,
@@ -762,6 +770,7 @@ static void output_json(
                                 value_i("id", token.id, false);
                                 value_f("p", token.p, false);
                                 value_f("t_dtw", token.t_dtw, true);
+//                                global_total_tokens++;
                             end_obj(j == (n - 1));
                         }
                         end_arr(!params.diarize && !params.tinydiarize);
@@ -1042,6 +1051,8 @@ int main(int argc, char ** argv) {
 
     bool using_bindings_flat = false;
     
+    // global_total_tokens = 0;
+    
     #ifdef WHISPER_BINDINGS_FLAT
     fprintf(stderr, "+++ WHISPER_BINDINGS_FLAT +++\n");
     using_bindings_flat = true;
@@ -1063,12 +1074,6 @@ int main(int argc, char ** argv) {
                 params.use_gpu = true;
             }
         }
-        if(params.use_sycl) {
-            if(backend_tryload("sycl")) {
-                params.use_gpu = true;
-            }
-        }
-
         if(params.openblas) {
             backend_tryload("blas");
         }
@@ -1130,12 +1135,13 @@ int main(int argc, char ** argv) {
     // Not really necessary - more for testing WHISPER_BINDINGS_FLAT
     // Would work the same by always doing the (implied) with state
     struct whisper_context * ctx;
+    struct whisper_state * state = nullptr;
     
     if(!using_bindings_flat) {
         ctx = whisper_init_from_file_with_params(params.model.c_str(), cparams);
     } else {
         ctx = whisper_init_from_file_with_params_no_state(params.model.c_str(), cparams);
-        auto state = whisper_init_state(ctx);
+        state = whisper_init_state(ctx);
         whisper_flat_set_context_state(ctx, state);
     }
     #endif
@@ -1401,20 +1407,35 @@ int main(int argc, char ** argv) {
 
 #undef output_ext
 #undef output_func
-
+            count_stuff(ctx);
             if (fout_factory.is_stdout && !fout_factory.used_stdout) {
                 fprintf(stderr, "warning: '--output-file -' used without any other '--output-*'");
             }
         }
     }
-
     if (!params.no_prints) {
-        if(!params.csv_prints) {
+        if(!using_bindings_flat) {
             whisper_print_timings(ctx);
         } else {
-            // fprintf(stderr, "fallbacks, %3d, %3d\n", ctx->state->n_fail_p, ctx->state->n_fail_h);
-            // fprintf(stderr, "mel_time, %9.2f\n", ctx->state->t_mel_us / 1000.0f);
-            whisper_print_timings(ctx);
+            fprintf(stderr, "\n\n");
+            if(state == nullptr) {
+                fprintf(stderr, "State not available\n");
+                fprintf(stderr, "global_total_tokens = %d\n", global_total_tokens);
+                whisper_print_timings(ctx);
+            } else {
+                struct whisper_activity *act;
+                act = whisper_flat_get_activity_with_state(state);
+                fprintf(stderr, "total time = %9.3f\n", (act->total_ms / 1000.0));
+                fprintf(stderr, "tokens per second = %0.3f (%d)\n\n", global_total_tokens / (act->total_ms / 1000.0), global_total_tokens);
+                fprintf(stderr, "sample_time, %9.2f (%d)\n", act->sample_ms, act->n_sample);
+                fprintf(stderr, "encode_time, %9.2f (%d)\n", act->encode_ms, act->n_encode);
+                fprintf(stderr, "decode_time, %9.2f (%d)\n", act->decode_ms, act->n_decode);
+                fprintf(stderr, "batchd_time, %9.2f (%d)\n", act->batchd_ms, act->n_batchd);
+                fprintf(stderr, "prompt_time, %9.2f (%d)\n", act->prompt_ms, act->n_prompt);
+
+//              fprintf(stderr, "fallbacks, %3d, %3d\n", ctx->state->n_fail_p, ctx->state->n_fail_h);
+//              fprintf(stderr, "mel_time, %9.2f\n", ctx->state->t_mel_us / 1000.0f);
+                whisper_print_timings(ctx);
             /*
             fprintf(stderr, "metric, runs, per\n");
             fprintf(stderr, "sample_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_sample_us, n_sample, 1e-3f * ctx->state->t_sample_us / n_sample);
@@ -1423,6 +1444,7 @@ int main(int argc, char ** argv) {
             fprintf(stderr, "batchd_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_batchd_us, n_batchd, 1e-3f * ctx->state->t_batchd_us / n_batchd);
             fprintf(stderr, "prompt_time, %9.2f, %5d, %8.2f\n", 1e-3f * ctx->state->t_prompt_us, n_prompt, 1e-3f * ctx->state->t_prompt_us / n_prompt);
             */
+            }
         }
     }
     whisper_free(ctx);
