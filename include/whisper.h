@@ -742,11 +742,15 @@ extern "C" {
         float decode_ms;
         float batchd_ms;
         float prompt_ms;
+        float total_ms;
+        float mel_ms;
         int32_t n_sample = 0; // number of tokens sampled
         int32_t n_encode = 0; // number of encoder calls
         int32_t n_decode = 0; // number of decoder calls with n_tokens == 1  (text-generation)
         int32_t n_batchd = 0; // number of decoder calls with n_tokens <  16 (batch decoding)
         int32_t n_prompt = 0; // number of decoder calls with n_tokens >  1  (prompt encoding)
+        int32_t n_fail_p = 0; // number of logprob threshold failures
+        int32_t n_fail_h = 0; // number of entropy threshold failures
     };
 
     const char * whisper_get_system_info_json(void);

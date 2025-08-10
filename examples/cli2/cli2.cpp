@@ -83,6 +83,7 @@ struct whisper_params {
     bool use_gpu         = true;
     bool openvino        = false;
     bool openblas        = false;
+    bool use_sycl        = false;
     bool use_cuda        = false;
     bool use_vulkan      = false;
     bool use_opencl      = false;
@@ -193,6 +194,7 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-pcsv" || arg == "--print-csv")       { params.csv_prints      = true; }
         else if (arg == "-openvino")                           { params.openvino        = true; }
         else if (arg == "-blas")                               { params.openblas        = true; }
+        else if (arg == "-sycl")                               { params.use_sycl        = true; }
         else if (arg == "-ps"   || arg == "--print-special")   { params.print_special   = true; }
         else if (arg == "-pc"   || arg == "--print-colors")    { params.print_colors    = true; }
         else if (                  arg == "--print-confidence"){ params.print_confidence= true; }
@@ -279,6 +281,7 @@ static void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params
     fprintf(stderr, "  -pcsv,     --print-csv         [%-7s] print summary results as CSV\n",                   params.csv_prints ? "true" : "false");
     fprintf(stderr, "  -openvino                      [%-7s] Use OpenVINO\n",                                   params.openvino ? "true" : "false");
     fprintf(stderr, "  -blas                          [%-7s] Use OpenBlas\n",                                   params.openblas ? "true" : "false");
+    fprintf(stderr, "  -sycl                          [%-7s] Use SYCL\n",                                       params.use_sycl ? "true" : "false");
     fprintf(stderr, "  -ps,       --print-special     [%-7s] print special tokens\n",                           params.print_special ? "true" : "false");
     fprintf(stderr, "  -pc,       --print-colors      [%-7s] print colors\n",                                   params.print_colors ? "true" : "false");
     fprintf(stderr, "             --print-confidence  [%-7s] print confidence\n",                               params.print_confidence ? "true" : "false");
@@ -1060,6 +1063,12 @@ int main(int argc, char ** argv) {
                 params.use_gpu = true;
             }
         }
+        if(params.use_sycl) {
+            if(backend_tryload("sycl")) {
+                params.use_gpu = true;
+            }
+        }
+
         if(params.openblas) {
             backend_tryload("blas");
         }

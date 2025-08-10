@@ -9085,16 +9085,20 @@ struct whisper_activity * whisper_get_activity_with_state(struct whisper_state *
     }
     whisper_activity * activity = new whisper_activity;
 
-    activity->sample_ms = 1e-3f * state->t_sample_us / std::max(1, state->n_sample);
-    activity->encode_ms = 1e-3f * state->t_encode_us / std::max(1, state->n_encode);
-    activity->decode_ms = 1e-3f * state->t_decode_us / std::max(1, state->n_decode);
-    activity->batchd_ms = 1e-3f * state->t_batchd_us / std::max(1, state->n_batchd);
-    activity->prompt_ms = 1e-3f * state->t_prompt_us / std::max(1, state->n_prompt);
+    activity->sample_ms = 1e-3f * state->t_sample_us;
+    activity->encode_ms = 1e-3f * state->t_encode_us;
+    activity->decode_ms = 1e-3f * state->t_decode_us;
+    activity->batchd_ms = 1e-3f * state->t_batchd_us;
+    activity->prompt_ms = 1e-3f * state->t_prompt_us;
+    activity->mel_ms = 1e-3f * state->t_mel_us;
+    activity->total_ms = activity->sample_ms + activity->encode_ms + activity->decode_ms + activity->batchd_ms + activity->prompt_ms;
     activity->n_sample = state->n_sample;
     activity->n_encode = state->n_encode;
     activity->n_decode = state->n_decode;
     activity->n_batchd = state->n_batchd;
     activity->n_prompt = state->n_prompt;
+    activity->n_fail_p = state->n_fail_p;
+    activity->n_fail_h = state->n_fail_h;
 
     return activity;
 }
