@@ -1466,7 +1466,7 @@ int main(int argc, char ** argv) {
                 if(params.token_stats) {
                     fprintf(stderr, "tokens per second = %9.3f (%6d)\n\n", total_tokens / (act->total_ms / 1000.0), total_tokens);
                 }
-                fprintf(stderr, "total time  = %9.3f secs / %d:%02d:%02.3f\n", (act->total_ms / 1000.0), hms.hours, hms.mins, hms.secs);
+                fprintf(stderr, "total time  = %9.3f secs / %d:%02d:%06.3f\n", (act->total_ms / 1000.0), hms.hours, hms.mins, hms.secs);
 
             }
         }
