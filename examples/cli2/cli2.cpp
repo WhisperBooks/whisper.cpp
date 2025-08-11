@@ -7,6 +7,7 @@
 #include "../ggml/src/ggml-flat.h"
 #endif
 #include "grammar-parser.h"
+#include "math.h"
 
 #include <cmath>
 #include <fstream>
@@ -23,6 +24,25 @@
 #endif
 #include <windows.h>
 #endif
+
+struct sb_time_hms {
+    int32_t hours;
+    int32_t mins;
+    float secs;
+};
+
+struct sb_time_hms conv_time_to_hms(float t) {
+    struct sb_time_hms rval;
+    int32_t ti;
+    ti = int(t);
+    rval.hours = ti / 3600;
+    ti = ti - (rval.hours * 3600);
+    rval.mins = ti / 60;
+
+    rval.secs = t - (rval.hours * 3600.0) - (rval.mins * 60.0);
+    
+    return rval;
+}
 
 // helper function to replace substrings
 static void replace_all(std::string & s, const std::string & search, const std::string & replace) {
@@ -1433,6 +1453,8 @@ int main(int argc, char ** argv) {
             } else {
                 struct whisper_activity *act;
                 act = whisper_flat_get_activity_with_state(state);
+                struct sb_time_hms hms;
+                hms = conv_time_to_hms(act->total_ms / 1000.0);
                 fprintf(stderr, "Timings (model load not included)\n\n");
                 fprintf(stderr, "fallbacks   = %3dp, %3dh\n", act->n_fail_p, act->n_fail_h);
                 fprintf(stderr, "mel_time    = %9.2f ms \n", act->mel_ms);
@@ -1441,10 +1463,10 @@ int main(int argc, char ** argv) {
                 fprintf(stderr, "decode_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->decode_ms, act->n_decode, act->decode_ms / act->n_decode);
                 fprintf(stderr, "batchd_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->batchd_ms, act->n_batchd, act->batchd_ms / act->n_batchd);
                 fprintf(stderr, "prompt_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->prompt_ms, act->n_prompt, act->prompt_ms / act->n_prompt);
-                fprintf(stderr, "total time  = %9.3f secs\n", (act->total_ms / 1000.0));
                 if(params.token_stats) {
                     fprintf(stderr, "tokens per second = %9.3f (%6d)\n\n", total_tokens / (act->total_ms / 1000.0), total_tokens);
                 }
+                fprintf(stderr, "total time  = %9.3f secs / %d:%02d:%02.3f\n", (act->total_ms / 1000.0), hms.hours, hms.mins, hms.secs);
 
             }
         }

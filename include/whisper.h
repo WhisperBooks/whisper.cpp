@@ -495,6 +495,7 @@ extern "C" {
         bool translate;
         bool no_context;        // do not use past transcription (if any) as initial prompt for the decoder
         bool no_timestamps;     // do not generate timestamps
+
         bool single_segment;    // force single segment output (useful for streaming)
         bool print_special;     // print special tokens (e.g. <SOT>, <EOT>, <BEG>, etc.)
         bool print_progress;    // print progress information
@@ -737,13 +738,13 @@ extern "C" {
     // For whisper-flat.cpp to expose
     #ifdef WHISPER_BINDINGS_FLAT
     struct whisper_activity {
-        float sample_ms;
-        float encode_ms;
-        float decode_ms;
-        float batchd_ms;
-        float prompt_ms;
-        float total_ms;
-        float mel_ms;
+        float sample_ms  = 0.0;
+        float encode_ms  = 0.0;
+        float decode_ms  = 0.0;
+        float batchd_ms  = 0.0;
+        float prompt_ms  = 0.0;
+        float total_ms   = 0.0;
+        float mel_ms     = 0.0;
         int32_t n_sample = 0; // number of tokens sampled
         int32_t n_encode = 0; // number of encoder calls
         int32_t n_decode = 0; // number of decoder calls with n_tokens == 1  (text-generation)
