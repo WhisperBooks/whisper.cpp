@@ -1537,6 +1537,8 @@ int main(int argc, char ** argv) {
                     
                     if(params.export_json) {
                     }
+                } else {
+                    whisper_print_timings(ctx);
                 }
             }
         }
