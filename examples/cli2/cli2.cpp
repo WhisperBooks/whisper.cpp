@@ -1524,7 +1524,7 @@ int main(int argc, char ** argv) {
                     fprintf(stderr, "Timings (model load not included)\n\n", extract_filename(infile).c_str());
 
                     fprintf(stderr, "filename    = %s\n", extract_filename(infile).c_str());
-                    fprintf(stderr, "model       = %s\n", extract_filename(model).c_str());
+                    fprintf(stderr, "model       = %s\n", extract_filename(params.model).c_str());
                     fprintf(stderr, "device      = TBD\n\n");
                     
                     fprintf(stderr, "fallbacks   = %3dp, %3dh\n", act->n_fail_p, act->n_fail_h);
