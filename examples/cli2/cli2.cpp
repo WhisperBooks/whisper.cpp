@@ -1554,7 +1554,7 @@ int main(int argc, char ** argv) {
                         fprintf(stderr, "\"batchd\": {\"time\": %f, \"runs\": %d },", act->batchd_ms, act->n_batchd);
                         fprintf(stderr, "\"prompt\": {\"time\": %f, \"runs\": %d },", act->prompt_ms, act->n_prompt);
                         fprintf(stderr, "\"tokens\": %d,", counters.tokens);
-                        fprintf(stderr, "\"words\": %,", counters.words);
+                        fprintf(stderr, "\"words\": %d,", counters.words);
                         fprintf(stderr, "\"reclen\": %f,", recording_length);
                         fprintf(stderr, "\"total_time\": %f}\n", act->total_ms);
                     } else {
