@@ -1136,6 +1136,7 @@ int main(int argc, char ** argv) {
     struct sb_count counters;
     bool using_bindings_flat = false;
     const char *infile = nullptr; // Recording Name
+    const char *tmodel = nullptr; // Recording Name
     float recording_length = 0; // Recording Seconds
     int32_t cpu_threads = 0; // CPU Threads
      
@@ -1338,6 +1339,7 @@ int main(int argc, char ** argv) {
         if (!params.no_prints) {
             if(params.token_stats) {
                 infile = fname_inp.c_str(); // Recording Name
+                tmodel = params.model.c_str(); // Model Name
                 recording_length = float(pcmf32.size())/WHISPER_SAMPLE_RATE; // Recording Seconds
                 cpu_threads = std::thread::hardware_concurrency(); // CPU Threads
             } else {
@@ -1524,7 +1526,7 @@ int main(int argc, char ** argv) {
                     fprintf(stderr, "Timings (model load not included)\n\n", extract_filename(infile).c_str());
 
                     fprintf(stderr, "filename    = %s\n", extract_filename(infile).c_str());
-                    fprintf(stderr, "model       = %s\n", extract_filename(params.model).c_str());
+                    fprintf(stderr, "model       = %s\n", extract_filename(tmodel).c_str());
                     fprintf(stderr, "device      = TBD\n\n");
                     
                     fprintf(stderr, "fallbacks   = %3dp, %3dh\n", act->n_fail_p, act->n_fail_h);
