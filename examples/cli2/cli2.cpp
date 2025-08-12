@@ -5,6 +5,7 @@
 #ifdef WHISPER_BINDINGS_FLAT
 #include "whisper-flat.h"
 #include "../ggml/src/ggml-flat.h"
+#include "../ggml/include/ggml-backend.h"
 #endif
 #include "grammar-parser.h"
 #include "math.h"
@@ -1518,6 +1519,14 @@ int main(int argc, char ** argv) {
                 whisper_print_timings(ctx);
             } else {
                 if(params.token_stats) {
+                    size_t becnt = 0;
+                    
+                    #ifdef WHISPER_BINDINGS_FLAT
+                    becnt = whisper_flat_get_backend_count(state);
+                    if(becnt > 0) {
+                        ggml_backend_t begpu = whisper_flat_get_preferred_backend(state);
+                    }
+                    #endif
                     struct whisper_activity *act;
                     act = whisper_flat_get_activity_with_state(state);
                     struct sb_time_hms hms;
