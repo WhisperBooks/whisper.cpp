@@ -1542,12 +1542,13 @@ int main(int argc, char ** argv) {
                     hms = conv_time_to_hms(act->total_ms / 1000.0);
 
                     if(params.export_json) {
-                        fprintf(stderr, "{\"filename\": \"%s\",", extract_filename(infile).c_str());
+                        fprintf(stderr, "{\"recording\": {\"filename\": \"%s\",", extract_filename(infile).c_str());
+                        fprintf(stderr, "\"length\": %f},", recording_length);
                         fprintf(stderr, "\"model\": \"%s\",", extract_filename(tmodel).c_str());
                         fprintf(stderr, "\"backend\": \"%s\",", bename);
                         fprintf(stderr, "\"device\": \"%s\",", devname);
                         fprintf(stderr, "\"fallbacks\": { \"n_fail_p\": %d, \"n_fail_h\": %d },", act->n_fail_p, act->n_fail_h);
-                        fprintf(stderr, "\"mel_time\": %f,", act->mel_ms);
+                        fprintf(stderr, "\"meltime\": %f,", act->mel_ms);
                         fprintf(stderr, "\"timings\": {\"sample\": {\"time\": %f, \"runs\": %d },", act->sample_ms, act->n_sample);
                         fprintf(stderr, "\"encode\": {\"time\": %f, \"runs\": %d },", act->encode_ms, act->n_encode);
                         fprintf(stderr, "\"decode\": {\"time\": %f, \"runs\": %d },", act->decode_ms, act->n_decode);
@@ -1555,8 +1556,7 @@ int main(int argc, char ** argv) {
                         fprintf(stderr, "\"prompt\": {\"time\": %f, \"runs\": %d }},", act->prompt_ms, act->n_prompt);
                         fprintf(stderr, "\"counters\": {\"tokens\": %d,", counters.tokens);
                         fprintf(stderr, "\"words\": %d},", counters.words);
-                        fprintf(stderr, "\"reclen\": %f,", recording_length);
-                        fprintf(stderr, "\"total_time\": %f}\n", act->total_ms);
+                        fprintf(stderr, "\"runtime\": %f}\n", act->total_ms);
                     } else {
                         fprintf(stderr, "filename    = %s\n", extract_filename(infile).c_str());
                         fprintf(stderr, "model       = %s\n", extract_filename(tmodel).c_str());
