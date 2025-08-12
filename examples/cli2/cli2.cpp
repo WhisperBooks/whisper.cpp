@@ -1511,7 +1511,6 @@ int main(int argc, char ** argv) {
         if(!using_bindings_flat) {
             whisper_print_timings(ctx);
         } else {
-            fprintf(stderr, "\n");
             if(state == nullptr) {
                 fprintf(stderr, "State not available\n");
                 whisper_print_timings(ctx);
@@ -1540,6 +1539,7 @@ int main(int argc, char ** argv) {
                 } else {
                     whisper_print_timings(ctx);
                 }
+                    
             }
         }
     }
