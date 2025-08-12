@@ -6,6 +6,7 @@
 #include "whisper-flat.h"
 #include "../ggml/src/ggml-flat.h"
 #include "../ggml/include/ggml-backend.h"
+#include "../ggml/src/ggml-backend-impl.h"
 #endif
 #include "grammar-parser.h"
 #include "math.h"
@@ -1520,11 +1521,19 @@ int main(int argc, char ** argv) {
             } else {
                 if(params.token_stats) {
                     size_t becnt = 0;
-                    
+                    const char * bename = nullptr;
+                    const char * devname = nullptr;
                     #ifdef WHISPER_BINDINGS_FLAT
                     becnt = whisper_flat_get_backend_count(state);
                     if(becnt > 0) {
                         ggml_backend_t begpu = whisper_flat_get_preferred_backend(state);
+                        if(begpu != nullptr) {
+                            bename = ggml_backend_name(begpu);
+                        }
+                        ggml_backend_dev_t bedev = begpu->device;
+                        if(bedev != nullptr) {
+                            devname = ggml_backend_dev_description(bedev);
+                        }
                     }
                     #endif
                     struct whisper_activity *act;
@@ -1532,25 +1541,40 @@ int main(int argc, char ** argv) {
                     struct sb_time_hms hms;
                     hms = conv_time_to_hms(act->total_ms / 1000.0);
 
-                    fprintf(stderr, "Timings (model load not included)\n\n", extract_filename(infile).c_str());
-
-                    fprintf(stderr, "filename    = %s\n", extract_filename(infile).c_str());
-                    fprintf(stderr, "model       = %s\n", extract_filename(tmodel).c_str());
-                    fprintf(stderr, "device      = TBD\n\n");
-                    
-                    fprintf(stderr, "fallbacks   = %3dp, %3dh\n", act->n_fail_p, act->n_fail_h);
-                    fprintf(stderr, "mel_time    = %9.2f ms \n", act->mel_ms);
-                    fprintf(stderr, "sample_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->sample_ms, act->n_sample, act->sample_ms / act->n_sample);
-                    fprintf(stderr, "encode_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->encode_ms, act->n_encode, act->encode_ms / act->n_encode);
-                    fprintf(stderr, "decode_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->decode_ms, act->n_decode, act->decode_ms / act->n_decode);
-                    fprintf(stderr, "batchd_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->batchd_ms, act->n_batchd, act->batchd_ms / act->n_batchd);
-                    fprintf(stderr, "prompt_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->prompt_ms, act->n_prompt, act->prompt_ms / act->n_prompt);
-                    fprintf(stderr, "tps         = %9.3f (%6d)\n", counters.tokens / (act->total_ms / 1000.0), counters.tokens);
-                    fprintf(stderr, "wpm         = %9.3f (%6d)\n", counters.words / (act->total_ms / 60000.0), counters.words);
-                    fprintf(stderr, "speed       = %9.3fx\n", recording_length / (act->total_ms / 1000.0));
-                    fprintf(stderr, "total time  = %9.3f secs / %d:%02d:%06.3f\n", (act->total_ms / 1000.0), hms.hours, hms.mins, hms.secs);
-                    
                     if(params.export_json) {
+                        fprintf(stderr, "{\"filename\": \"%s\",", extract_filename(infile).c_str());
+                        fprintf(stderr, "\"model\": \"%s\",", extract_filename(tmodel).c_str());
+                        fprintf(stderr, "\"backend\": \"%s\",", bename);
+                        fprintf(stderr, "\"device\": \"%s\",", devname);
+                        fprintf(stderr, "\"fallbacks\": { \"n_fail_p\": %d, \"n_fail_h\": %d },", act->n_fail_p, act->n_fail_h);
+                        fprintf(stderr, "\"mel_time\": %f,", act->mel_ms);
+                        fprintf(stderr, "\"sample\": {\"time\": %f, \"runs\": %d },", act->sample_ms, act->n_sample);
+                        fprintf(stderr, "\"encode\": {\"time\": %f, \"runs\": %d },", act->encode_ms, act->n_encode);
+                        fprintf(stderr, "\"decode\": {\"time\": %f, \"runs\": %d },", act->decode_ms, act->n_decode);
+                        fprintf(stderr, "\"batchd\": {\"time\": %f, \"runs\": %d },", act->batchd_ms, act->n_batchd);
+                        fprintf(stderr, "\"prompt\": {\"time\": %f, \"runs\": %d },", act->prompt_ms, act->n_prompt);
+                        fprintf(stderr, "\"tokens\": %d,", counters.tokens);
+                        fprintf(stderr, "\"words\": %,", counters.words);
+                        fprintf(stderr, "\"reclen\": %f,", recording_length);
+                        fprintf(stderr, "\"total_time\": %f}\n", act->total_ms);
+                    } else {
+                        fprintf(stderr, "filename    = %s\n", extract_filename(infile).c_str());
+                        fprintf(stderr, "model       = %s\n", extract_filename(tmodel).c_str());
+                        fprintf(stderr, "backend     = %s\n", bename);
+                        fprintf(stderr, "device      = %s\n\n", devname);
+                        
+                        fprintf(stderr, "fallbacks   = %3dp, %3dh\n", act->n_fail_p, act->n_fail_h);
+                        fprintf(stderr, "mel_time    = %9.2f ms \n", act->mel_ms);
+                        fprintf(stderr, "sample_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->sample_ms, act->n_sample, act->sample_ms / act->n_sample);
+                        fprintf(stderr, "encode_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->encode_ms, act->n_encode, act->encode_ms / act->n_encode);
+                        fprintf(stderr, "decode_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->decode_ms, act->n_decode, act->decode_ms / act->n_decode);
+                        fprintf(stderr, "batchd_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->batchd_ms, act->n_batchd, act->batchd_ms / act->n_batchd);
+                        fprintf(stderr, "prompt_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->prompt_ms, act->n_prompt, act->prompt_ms / act->n_prompt);
+                        fprintf(stderr, "tps         = %9.3f (%6d)\n", counters.tokens / (act->total_ms / 1000.0), counters.tokens);
+                        fprintf(stderr, "wpm         = %9.3f (%6d)\n", counters.words / (act->total_ms / 60000.0), counters.words);
+                        fprintf(stderr, "speed       = %9.3fx\n", recording_length / (act->total_ms / 1000.0));
+                        fprintf(stderr, "total time  = %9.3f secs / %d:%02d:%06.3f\n", (act->total_ms / 1000.0), hms.hours, hms.mins, hms.secs);
+                        fprintf(stderr, "==============================\n");
                     }
                 } else {
                     whisper_print_timings(ctx);
