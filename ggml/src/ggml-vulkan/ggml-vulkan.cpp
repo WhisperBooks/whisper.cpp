@@ -3880,10 +3880,11 @@ static void ggml_vk_print_gpu_info(size_t idx) {
     std::string matrix_cores = coopmat2_support ? "NV_coopmat2" : coopmat_support ? "KHR_coopmat" : "none";
 
     std::string device_name = props2.properties.deviceName.data();
+#ifndef GGML_BINDINGS_FLAT
     GGML_LOG_DEBUG("ggml_vulkan: %zu = %s (%s) | uma: %d | fp16: %d | bf16: %d | warp size: %zu | shared memory: %d | int dot: %d | matrix cores: %s\n",
               idx, device_name.c_str(), driver_props.driverName.data(), uma, fp16, bf16, subgroup_size,
               props2.properties.limits.maxComputeSharedMemorySize, integer_dot_product, matrix_cores.c_str());
-
+#endif
     if (props2.properties.deviceType == vk::PhysicalDeviceType::eCpu) {
         GGML_LOG_DEBUG("ggml_vulkan: Warning: Device type is CPU. This is probably not the device you want.\n");
     }
@@ -4089,7 +4090,9 @@ static void ggml_vk_instance_init() {
             return;
         }
     }
+#ifndef GGML_BINDINGS_FLAT
     GGML_LOG_DEBUG("ggml_vulkan: Found %zu Vulkan devices:\n", vk_instance.device_indices.size());
+#endif
 
     for (size_t i = 0; i < vk_instance.device_indices.size(); i++) {
         ggml_vk_print_gpu_info(i);

@@ -272,8 +272,9 @@ struct ggml_backend_registry {
             return nullptr;
         }
 
+    #ifndef GGML_BINDINGS_FLAT
         GGML_LOG_INFO("%s: loaded %s backend from %s\n", __func__, ggml_backend_reg_name(reg), path_str(path).c_str());
-
+    #endif
         register_backend(reg, std::move(handle));
 
         return reg;
@@ -597,7 +598,7 @@ void ggml_backend_load_all_from_path(const char * dir_path) {
 #ifdef GGML_BINDINGS_FLAT
 ggml_backend_reg_t ggml_backend_try_load_best(const char * name, const char * dir_path) {
     bool silent = false;
-    fprintf(stderr, "%s: (%s)\n", __func__, name);
+//    fprintf(stderr, "%s: (%s)\n", __func__, name);
     return ggml_backend_load_best(name, silent, dir_path);
 }
 #endif

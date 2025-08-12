@@ -1347,7 +1347,9 @@ static ggml_backend_t whisper_backend_init_gpu(const whisper_context_params & pa
         return nullptr;
     }
 
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: using %s backend\n", __func__, ggml_backend_dev_name(dev));
+    #endif
     ggml_backend_t result = ggml_backend_dev_init(dev, nullptr);
     if (!result) {
         WHISPER_LOG_ERROR("%s: failed to initialize %s backend\n", __func__, ggml_backend_dev_name(dev));
@@ -1523,8 +1525,9 @@ static ggml_backend_buffer_type_t select_weight_buft(const whisper_hparams & hpa
 // see the convert-pt-to-ggml.py script for details
 //
 static bool whisper_model_load(struct whisper_model_loader * loader, whisper_context & wctx) {
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: loading model\n", __func__);
-
+    #endif
     const int64_t t_start_us = ggml_time_us();
 
     wctx.t_start_us = t_start_us;
@@ -1598,6 +1601,7 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
             return false;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: n_vocab       = %d\n", __func__, hparams.n_vocab);
         WHISPER_LOG_INFO("%s: n_audio_ctx   = %d\n", __func__, hparams.n_audio_ctx);
         WHISPER_LOG_INFO("%s: n_audio_state = %d\n", __func__, hparams.n_audio_state);
@@ -1611,6 +1615,7 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
         WHISPER_LOG_INFO("%s: ftype         = %d\n", __func__, model.hparams.ftype);
         WHISPER_LOG_INFO("%s: qntvr         = %d\n", __func__, qntvr);
         WHISPER_LOG_INFO("%s: type          = %d (%s%s)\n", __func__, model.type, g_model_name.at(model.type).c_str(), mver.c_str());
+    #endif
     }
 
     // load mel filters
@@ -1679,7 +1684,9 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
         }
 
         if (n_vocab < model.hparams.n_vocab) {
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: adding %d extra tokens\n", __func__, model.hparams.n_vocab - n_vocab);
+    #endif
             for (int i = n_vocab; i < model.hparams.n_vocab; i++) {
                 if (i > vocab.token_beg) {
                     word = "[_TT_" + std::to_string(i - vocab.token_beg) + "]";
@@ -1711,7 +1718,9 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
             }
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: n_langs       = %d\n", __func__, vocab.num_languages());
+    #endif
     }
 
     const ggml_type wtype = wctx.wtype;
@@ -1900,7 +1909,9 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
             model.buffers.emplace_back(buf);
 
             size_t size_main = ggml_backend_buffer_get_size(buf);
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: %12s total size = %8.2f MB\n", __func__, ggml_backend_buffer_name(buf), size_main / 1e6);
+    #endif
         }
     }
 
@@ -1982,8 +1993,9 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
             model.n_loaded++;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: model size    = %7.2f MB\n", __func__, total_size/1e6);
-
+    #endif
         if (model.n_loaded == 0) {
             WHISPER_LOG_WARN("%s: WARN no tensors loaded from model file - assuming empty model for testing\n", __func__);
         } else if (model.n_loaded != (int) model.tensors.size()) {
@@ -3441,7 +3453,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
 
     {
         const size_t memory_size = ggml_nbytes(state->kv_self.k) + ggml_nbytes(state->kv_self.v);
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: kv self size  = %7.2f MB\n", __func__, memory_size / 1e6);
+    #endif
     }
 
     if (!whisper_kv_cache_init(state->kv_cross, state->backends[0], ctx->itype,
@@ -3455,7 +3469,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
 
     {
         const size_t memory_size = ggml_nbytes(state->kv_cross.k) + ggml_nbytes(state->kv_cross.v);
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: kv cross size = %7.2f MB\n", __func__, memory_size / 1e6);
+    #endif
     }
 
     if (!whisper_kv_cache_init(state->kv_pad, state->backends[0], ctx->itype,
@@ -3469,7 +3485,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
 
     {
         const size_t memory_size = ggml_nbytes(state->kv_pad.k) + ggml_nbytes(state->kv_pad.v);
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: kv pad  size  = %7.2f MB\n", __func__, memory_size / 1e6);
+    #endif
     }
 
     // [EXPERIMENTAL] Token-level timestamps with DTW
@@ -3486,9 +3504,10 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
 #ifdef WHISPER_USE_COREML
     const auto path_coreml = whisper_get_coreml_path_encoder(ctx->path_model);
 
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: loading Core ML model from '%s'\n", __func__, path_coreml.c_str());
     WHISPER_LOG_INFO("%s: first run on a device may take a while ...\n", __func__);
-
+    #endif
     state->ctx_coreml = whisper_coreml_init(path_coreml.c_str());
     if (!state->ctx_coreml) {
         WHISPER_LOG_ERROR("%s: failed to load Core ML model from '%s'\n", __func__, path_coreml.c_str());
@@ -3497,7 +3516,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
         return nullptr;
 #endif
     } else {
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: Core ML model loaded\n", __func__);
+    #endif
     }
 #endif
 
@@ -3528,7 +3549,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
             return nullptr;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: compute buffer (conv)   = %7.2f MB\n", __func__, whisper_sched_size(state->sched_conv) / 1e6);
+    #endif
     }
 
     // encoder allocator
@@ -3544,7 +3567,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
             return nullptr;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: compute buffer (encode) = %7.2f MB\n", __func__, whisper_sched_size(state->sched_encode) / 1e6);
+    #endif
     }
 
     // cross allocator
@@ -3560,7 +3585,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
             return nullptr;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: compute buffer (cross)  = %7.2f MB\n", __func__, whisper_sched_size(state->sched_cross) / 1e6);
+    #endif
     }
 
     // decoder allocator
@@ -3584,7 +3611,9 @@ struct whisper_state * whisper_init_state(whisper_context * ctx) {
             return nullptr;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: compute buffer (decode) = %7.2f MB\n", __func__, whisper_sched_size(state->sched_decode) / 1e6);
+    #endif
     }
 
     return state;
@@ -3668,7 +3697,9 @@ struct whisper_context_params whisper_context_default_params() {
 }
 
 struct whisper_context * whisper_init_from_file_with_params_no_state(const char * path_model, struct whisper_context_params params) {
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: loading model from '%s'\n", __func__, path_model);
+    #endif
 #ifdef _MSC_VER
     // Convert UTF-8 path to wide string (UTF-16) for Windows, resolving character encoding issues.
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
@@ -3756,13 +3787,15 @@ struct whisper_context * whisper_init_with_params_no_state(struct whisper_model_
         params.dtw_token_timestamps = false;
     }
 
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: use gpu    = %d\n", __func__, params.use_gpu);
     WHISPER_LOG_INFO("%s: flash attn = %d\n", __func__, params.flash_attn);
     WHISPER_LOG_INFO("%s: gpu_device = %d\n", __func__, params.gpu_device);
     WHISPER_LOG_INFO("%s: dtw        = %d\n", __func__, params.dtw_token_timestamps);
     WHISPER_LOG_INFO("%s: devices    = %zu\n", __func__, ggml_backend_dev_count());
     WHISPER_LOG_INFO("%s: backends   = %zu\n", __func__, ggml_backend_reg_count());
-
+    #endif
+    
     whisper_context * ctx = new whisper_context;
     ctx->params = params;
 

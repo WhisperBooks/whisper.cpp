@@ -212,6 +212,7 @@ static ggml_cuda_device_info ggml_cuda_init() {
     GGML_ASSERT(info.device_count <= GGML_CUDA_MAX_DEVICES);
 
     int64_t total_vram = 0;
+#ifndef GGML_BINDINGS_FLAT
 #ifdef GGML_CUDA_FORCE_MMQ
     GGML_LOG_INFO("%s: GGML_CUDA_FORCE_MMQ:    yes\n", __func__);
 #else
@@ -223,6 +224,7 @@ static ggml_cuda_device_info ggml_cuda_init() {
     GGML_LOG_INFO("%s: GGML_CUDA_FORCE_CUBLAS: no\n", __func__);
 #endif // GGML_CUDA_FORCE_CUBLAS
     GGML_LOG_INFO("%s: found %d " GGML_CUDA_NAME " devices:\n", __func__, info.device_count);
+#endif
     for (int id = 0; id < info.device_count; ++id) {
         int device_vmm = 0;
 
