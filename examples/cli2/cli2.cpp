@@ -1521,7 +1521,12 @@ int main(int argc, char ** argv) {
                     struct sb_time_hms hms;
                     hms = conv_time_to_hms(act->total_ms / 1000.0);
 
-                    fprintf(stderr, "Timings (model load not included) for %s\n\n", extract_filename(infile).c_str());
+                    fprintf(stderr, "Timings (model load not included)\n\n", extract_filename(infile).c_str());
+
+                    fprintf(stderr, "filename    = %s\n", extract_filename(infile).c_str());
+                    fprintf(stderr, "model       = %s\n", extract_filename(model).c_str());
+                    fprintf(stderr, "device      = TBD\n\n");
+                    
                     fprintf(stderr, "fallbacks   = %3dp, %3dh\n", act->n_fail_p, act->n_fail_h);
                     fprintf(stderr, "mel_time    = %9.2f ms \n", act->mel_ms);
                     fprintf(stderr, "sample_time = %9.2f ms : %6d runs (%9.2f per run)\n", act->sample_ms, act->n_sample, act->sample_ms / act->n_sample);
