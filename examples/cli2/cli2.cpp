@@ -1140,12 +1140,11 @@ int main(int argc, char ** argv) {
     int32_t cpu_threads = 0; // CPU Threads
      
     #ifdef WHISPER_BINDINGS_FLAT
-    fprintf(stderr, "+++ WHISPER_BINDINGS_FLAT +++\n");
+    // fprintf(stderr, "+++ WHISPER_BINDINGS_FLAT +++\n");
     using_bindings_flat = true;
     if(params.use_gpu) {
         whisper_flat_backend_load_all();
     } else {
-        params.token_stats = true;
         if(params.use_cuda) {
             if(backend_tryload("cuda")) {
                 params.use_gpu = true;
@@ -1512,7 +1511,7 @@ int main(int argc, char ** argv) {
         if(!using_bindings_flat) {
             whisper_print_timings(ctx);
         } else {
-            fprintf(stderr, "\n\n");
+            fprintf(stderr, "\n");
             if(state == nullptr) {
                 fprintf(stderr, "State not available\n");
                 whisper_print_timings(ctx);
