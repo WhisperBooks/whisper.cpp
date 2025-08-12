@@ -1548,13 +1548,13 @@ int main(int argc, char ** argv) {
                         fprintf(stderr, "\"device\": \"%s\",", devname);
                         fprintf(stderr, "\"fallbacks\": { \"n_fail_p\": %d, \"n_fail_h\": %d },", act->n_fail_p, act->n_fail_h);
                         fprintf(stderr, "\"mel_time\": %f,", act->mel_ms);
-                        fprintf(stderr, "\"sample\": {\"time\": %f, \"runs\": %d },", act->sample_ms, act->n_sample);
+                        fprintf(stderr, "\"timings\": {\"sample\": {\"time\": %f, \"runs\": %d },", act->sample_ms, act->n_sample);
                         fprintf(stderr, "\"encode\": {\"time\": %f, \"runs\": %d },", act->encode_ms, act->n_encode);
                         fprintf(stderr, "\"decode\": {\"time\": %f, \"runs\": %d },", act->decode_ms, act->n_decode);
                         fprintf(stderr, "\"batchd\": {\"time\": %f, \"runs\": %d },", act->batchd_ms, act->n_batchd);
-                        fprintf(stderr, "\"prompt\": {\"time\": %f, \"runs\": %d },", act->prompt_ms, act->n_prompt);
-                        fprintf(stderr, "\"tokens\": %d,", counters.tokens);
-                        fprintf(stderr, "\"words\": %d,", counters.words);
+                        fprintf(stderr, "\"prompt\": {\"time\": %f, \"runs\": %d }},", act->prompt_ms, act->n_prompt);
+                        fprintf(stderr, "\"counters\": {\"tokens\": %d,", counters.tokens);
+                        fprintf(stderr, "\"words\": %d},", counters.words);
                         fprintf(stderr, "\"reclen\": %f,", recording_length);
                         fprintf(stderr, "\"total_time\": %f}\n", act->total_ms);
                     } else {
