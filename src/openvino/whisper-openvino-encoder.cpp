@@ -17,8 +17,8 @@ struct whisper_openvino_context * whisper_openvino_init(const char* path_model,
     }
 
     #ifndef WHISPER_BINDINGS_FLAT
-    fprintf(stderr, "%s: path_model = %s, device = %s, cache_dir = %s\n",
-        __func__, path_model, device, cache_dir ? cache_dir : "(not set)");
+    // fprintf(stderr, "%s: path_model = %s, device = %s, cache_dir = %s\n",
+    //    __func__, path_model, device, cache_dir ? cache_dir : "(not set)");
     #endif
 
 	whisper_openvino_context *context = new whisper_openvino_context;
