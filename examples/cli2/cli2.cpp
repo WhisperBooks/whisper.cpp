@@ -1167,7 +1167,9 @@ int main(int argc, char ** argv) {
             }
         }
         if(params.use_coreml) {
-           params.use_gpu = true;
+            if(backend_tryload("metal")) {
+                params.use_gpu = true;
+            }
         }
         if(params.openblas) {
             backend_tryload("blas");
