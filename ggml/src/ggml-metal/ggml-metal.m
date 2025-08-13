@@ -924,8 +924,9 @@ static id<MTLLibrary> ggml_metal_load_library(id<MTLDevice> device, bool use_bfl
     NSString * src = nil;
 
 #if GGML_METAL_EMBED_LIBRARY
+    #ifndef GGML_BINDINGS_FLAT
     GGML_LOG_INFO("%s: using embedded metal library\n", __func__);
-
+    #endif
     extern const char ggml_metallib_start[];
     extern const char ggml_metallib_end[];
 
@@ -946,7 +947,9 @@ static id<MTLLibrary> ggml_metal_load_library(id<MTLDevice> device, bool use_bfl
         NSString * bin_dir = [current_binary stringByDeletingLastPathComponent];
         NSString * default_metallib_path = [NSString pathWithComponents:@[bin_dir, @"default.metallib"]];
         if ([[NSFileManager defaultManager] isReadableFileAtPath:default_metallib_path]) {
+    #ifndef GGML_BINDINGS_FLAT
             GGML_LOG_INFO("%s: found '%s'\n", __func__, [default_metallib_path UTF8String]);
+    #endif
             NSDictionary * atts = [[NSFileManager defaultManager] attributesOfItemAtPath:default_metallib_path error:&error];
             if (atts && atts[NSFileType] == NSFileTypeSymbolicLink) {
                 // Optionally, if this is a symlink, try to resolve it.
@@ -959,7 +962,9 @@ static id<MTLLibrary> ggml_metal_load_library(id<MTLDevice> device, bool use_bfl
                     // Link to the resource could not be resolved.
                     default_metallib_path = nil;
                 } else {
+    #ifndef GGML_BINDINGS_FLAT
                     GGML_LOG_INFO("%s: symlink resolved '%s'\n", __func__, [default_metallib_path UTF8String]);
+    #endif
                 }
             }
         } else {
@@ -972,21 +977,25 @@ static id<MTLLibrary> ggml_metal_load_library(id<MTLDevice> device, bool use_bfl
     if (path_lib != nil) {
         // pre-compiled library found
         NSURL * libURL = [NSURL fileURLWithPath:path_lib];
+    #ifndef GGML_BINDINGS_FLAT
         GGML_LOG_INFO("%s: loading '%s'\n", __func__, [path_lib UTF8String]);
-
+    #endif
         metal_library = [device newLibraryWithURL:libURL error:&error];
         if (error) {
             GGML_LOG_ERROR("%s: error: %s\n", __func__, [[error description] UTF8String]);
             return NULL;
         }
     } else {
+    #ifndef GGML_BINDINGS_FLAT
         GGML_LOG_INFO("%s: default.metallib not found, loading from source\n", __func__);
+    #endif
 
         NSString * path_source;
         NSString * path_resource = [[NSProcessInfo processInfo].environment objectForKey:@"GGML_METAL_PATH_RESOURCES"];
 
+    #ifndef GGML_BINDINGS_FLAT
         GGML_LOG_INFO("%s: GGML_METAL_PATH_RESOURCES = %s\n", __func__, path_resource ? [path_resource UTF8String] : "nil");
-
+    #endif
         if (path_resource) {
             path_source = [path_resource stringByAppendingPathComponent:@"ggml-metal.metal"];
         } else {
@@ -998,8 +1007,9 @@ static id<MTLLibrary> ggml_metal_load_library(id<MTLDevice> device, bool use_bfl
             path_source = @"ggml-metal.metal";
         }
 
+    #ifndef GGML_BINDINGS_FLAT
         GGML_LOG_INFO("%s: loading '%s'\n", __func__, [path_source UTF8String]);
-
+    #endif
         src = [NSString stringWithContentsOfFile:path_source encoding:NSUTF8StringEncoding error:&error];
         if (error) {
             GGML_LOG_ERROR("%s: error: %s\n", __func__, [[error description] UTF8String]);
@@ -1046,13 +1056,17 @@ static id<MTLLibrary> ggml_metal_load_library(id<MTLDevice> device, bool use_bfl
 }
 
 static struct ggml_backend_metal_context * ggml_metal_init(ggml_backend_dev_t dev) {
+    #ifndef GGML_BINDINGS_FLAT
     GGML_LOG_INFO("%s: allocating\n", __func__);
+    #endif
 
 #if TARGET_OS_OSX && !GGML_METAL_NDEBUG
     // Show all the Metal device instances in the system
     NSArray * devices = MTLCopyAllDevices();
     for (id<MTLDevice> device in devices) {
+    #ifndef GGML_BINDINGS_FLAT
         GGML_LOG_INFO("%s: found device: %s\n", __func__, [[device name] UTF8String]);
+    #endif
     }
     [devices release]; // since it was created by a *Copy* C method
 #endif
@@ -1063,7 +1077,9 @@ static struct ggml_backend_metal_context * ggml_metal_init(ggml_backend_dev_t de
 
     id<MTLDevice> device = ctx_dev->mtl_device;
 
+    #ifndef GGML_BINDINGS_FLAT
     GGML_LOG_INFO("%s: picking default device: %s\n", __func__, [[device name] UTF8String]);
+    #endif
 
     ctx->device = device;
     ctx->queue = [device newCommandQueue];
@@ -1092,7 +1108,9 @@ static struct ggml_backend_metal_context * ggml_metal_init(ggml_backend_dev_t de
     }
 
     // print MTL GPU family:
+    #ifndef GGML_BINDINGS_FLAT
     GGML_LOG_INFO("%s: GPU name:   %s\n", __func__, [[device name] UTF8String]);
+    #endif
 
     // determine max supported GPU family
     // https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf
@@ -1100,33 +1118,41 @@ static struct ggml_backend_metal_context * ggml_metal_init(ggml_backend_dev_t de
     {
         for (int i = MTLGPUFamilyApple1 + 20; i >= MTLGPUFamilyApple1; --i) {
             if ([device supportsFamily:i]) {
+    #ifndef GGML_BINDINGS_FLAT
                 GGML_LOG_INFO("%s: GPU family: MTLGPUFamilyApple%d  (%d)\n", __func__, i - (int) MTLGPUFamilyApple1 + 1, i);
+    #endif
                 break;
             }
         }
 
         for (int i = MTLGPUFamilyCommon1 + 5; i >= MTLGPUFamilyCommon1; --i) {
             if ([device supportsFamily:i]) {
+    #ifndef GGML_BINDINGS_FLAT
                 GGML_LOG_INFO("%s: GPU family: MTLGPUFamilyCommon%d (%d)\n", __func__, i - (int) MTLGPUFamilyCommon1 + 1, i);
+    #endif
                 break;
             }
         }
 
         for (int i = MTLGPUFamilyMetal3_GGML + 5; i >= MTLGPUFamilyMetal3_GGML; --i) {
             if ([device supportsFamily:i]) {
+    #ifndef GGML_BINDINGS_FLAT
                 GGML_LOG_INFO("%s: GPU family: MTLGPUFamilyMetal%d  (%d)\n", __func__, i - (int) MTLGPUFamilyMetal3_GGML + 3, i);
+    #endif
                 break;
             }
         }
     }
 
+    #ifndef GGML_BINDINGS_FLAT
     GGML_LOG_INFO("%s: simdgroup reduction   = %s\n", __func__, ctx_dev->has_simdgroup_reduction     ? "true" : "false");
     GGML_LOG_INFO("%s: simdgroup matrix mul. = %s\n", __func__, ctx_dev->has_simdgroup_mm            ? "true" : "false");
     GGML_LOG_INFO("%s: has residency sets    = %s\n", __func__, ctx_dev->has_residency_sets          ? "true" : "false");
     GGML_LOG_INFO("%s: has bfloat            = %s\n", __func__, ctx_dev->has_bfloat                  ? "true" : "false");
     GGML_LOG_INFO("%s: use bfloat            = %s\n", __func__, ctx_dev->use_bfloat                  ? "true" : "false");
     GGML_LOG_INFO("%s: hasUnifiedMemory      = %s\n", __func__, ctx_dev->mtl_device.hasUnifiedMemory ? "true" : "false");
-
+    #endif
+    
     ctx->capture_next_compute = false;
     ctx->capture_started = false;
     ctx->capture_scope = nil;
@@ -1142,7 +1168,9 @@ static struct ggml_backend_metal_context * ggml_metal_init(ggml_backend_dev_t de
 
 #if TARGET_OS_OSX || (TARGET_OS_IOS && __clang_major__ >= 15)
     if (@available(macOS 10.12, iOS 16.0, *)) {
+    #ifndef GGML_BINDINGS_FLAT
         GGML_LOG_INFO("%s: recommendedMaxWorkingSetSize  = %8.2f MB\n", __func__, device.recommendedMaxWorkingSetSize / 1e6);
+    #endif
     }
 #endif
 
@@ -1596,8 +1624,9 @@ static struct ggml_backend_metal_context * ggml_metal_init(ggml_backend_dev_t de
 }
 
 static void ggml_metal_free(struct ggml_backend_metal_context * ctx) {
+    #ifndef GGML_BINDINGS_FLAT
     GGML_LOG_INFO("%s: deallocating\n", __func__);
-
+    #endif
     for (int i = 0; i < GGML_METAL_KERNEL_TYPE_COUNT; ++i) {
         [ctx->kernels[i].pipeline release];
     }

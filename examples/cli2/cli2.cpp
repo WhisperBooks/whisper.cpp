@@ -118,6 +118,7 @@ struct whisper_params {
     bool use_cuda        = false; // sb
     bool use_vulkan      = false; // sb
     bool use_opencl      = false; // sb
+    bool use_coreml      = false; // sb
     bool export_json     = false; // sb
     std::string mdesc    = "";    // sb
 
@@ -241,6 +242,7 @@ static bool whisper_params_parse(int argc, char ** argv, whisper_params & params
         else if (arg == "-cuda" || arg == "--nvidia")          { params.use_cuda        = true; }
         else if (arg == "-vk"   || arg == "--vulkan")          { params.use_vulkan      = true; }
         else if (arg == "-opencl")                             { params.use_opencl      = true; }
+        else if (arg == "-coreml")                             { params.use_coreml      = true; }
         else if (arg == "-openvino")                           { params.openvino        = true; }
         else if (arg == "-blas")                               { params.openblas        = true; }
         else if (arg == "-ts"   || arg == "--token-stats")     { params.token_stats     = true; }
@@ -333,6 +335,7 @@ static void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params
     fprintf(stderr, "  -cuda      --nvidia            [%-7s] Use CUDA\n",                                       params.use_cuda ? "false" : "true");
     fprintf(stderr, "  -vk        --vulkan            [%-7s] Use Vulkan\n",                                     params.use_vulkan ? "false" : "true");
     fprintf(stderr, "  -opencl                        [%-7s] Use OpenCL\n",                                     params.use_opencl ? "false" : "true");
+    fprintf(stderr, "  -coreml                        [%-7s] Use CoreML (Apple)\n",                             params.use_coreml ? "false" : "true");
     fprintf(stderr, "  -openvino                      [%-7s] Use OpenVINO\n",                                   params.openvino ? "true" : "false");
     fprintf(stderr, "  -blas                          [%-7s] Use OpenBlas\n",                                   params.openblas ? "true" : "false");
     fprintf(stderr, "  -ts,       --token-stats       [%-7s] gather token stats\n",                             params.token_stats ? "true" : "false");
@@ -1162,6 +1165,9 @@ int main(int argc, char ** argv) {
             if(backend_tryload("opencl")) {
                 params.use_gpu = true;
             }
+        }
+        if(params.use_coreml) {
+           params.use_gpu = true;
         }
         if(params.openblas) {
             backend_tryload("blas");

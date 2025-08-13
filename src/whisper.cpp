@@ -1343,7 +1343,9 @@ static ggml_backend_t whisper_backend_init_gpu(const whisper_context_params & pa
     }
 
     if (dev == nullptr) {
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: no GPU found\n", __func__);
+    #endif
         return nullptr;
     }
 
@@ -1375,7 +1377,9 @@ static std::vector<ggml_backend_t> whisper_backend_init(const whisper_context_pa
             continue;
         }
         if (ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_ACCEL) {
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: using %s backend\n", __func__, ggml_backend_dev_name(dev));
+    #endif
             ggml_backend_t backend = ggml_backend_dev_init(dev, nullptr);
             if (!backend) {
                 WHISPER_LOG_ERROR("%s: failed to initialize %s backend\n", __func__, ggml_backend_dev_name(dev));
@@ -3655,15 +3659,18 @@ int whisper_ctx_init_openvino_encoder_with_state(
         path_cache = cache_dir;
     }
 
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: loading OpenVINO model from '%s'\n", __func__, path_encoder.c_str());
     WHISPER_LOG_INFO("%s: first run on a device may take a while ...\n", __func__);
-
+    #endif
     state->ctx_openvino = whisper_openvino_init(path_encoder.c_str(), device, path_cache.c_str());
     if (!state->ctx_openvino) {
         WHISPER_LOG_ERROR("%s: failed to init OpenVINO encoder from '%s'\n", __func__, path_encoder.c_str());
         return 1;
     } else {
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: OpenVINO model loaded\n", __func__);
+    #endif
     }
 
     return 0;
@@ -3751,7 +3758,9 @@ struct whisper_context * whisper_init_from_buffer_with_params_no_state(void * bu
 
     buf_context ctx = { reinterpret_cast<uint8_t*>(buffer), buffer_size, 0 };
 
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: loading model from buffer\n", __func__);
+    #endif
 
     whisper_model_loader loader = {};
 
@@ -4785,7 +4794,9 @@ static bool whisper_vad_init_context(whisper_vad_context * vctx) {
             return false;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: compute buffer (VAD)   = %7.2f MB\n", __func__, whisper_sched_size(vctx->sched) / 1e6);
+    #endif
     }
 
     return true;
@@ -4794,7 +4805,9 @@ static bool whisper_vad_init_context(whisper_vad_context * vctx) {
 struct whisper_vad_context * whisper_vad_init_from_file_with_params(
         const char * path_model,
         struct whisper_vad_context_params params) {
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: loading VAD model from '%s'\n", __func__, path_model);
+    #endif
 #ifdef _MSC_VER
     std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
     std::wstring path_model_wide = converter.from_bytes(path_model);
@@ -4864,8 +4877,9 @@ struct whisper_vad_context * whisper_vad_init_with_params(
         loader->read(loader->context, buffer.data(), str_len);
         std::string model_type(buffer.data(), str_len);
         model.type = model_type;
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: model type: %s\n", __func__, model.type.c_str());
-
+    #endif
         int32_t major, minor, patch;
         read_safe(loader, major);
         read_safe(loader, minor);
@@ -4874,7 +4888,9 @@ struct whisper_vad_context * whisper_vad_init_with_params(
                                   std::to_string(minor) + "." +
                                   std::to_string(patch);
         model.version = version_str;
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: model version: %s\n", __func__, model.version.c_str());
+    #endif
 
         read_safe(loader, vctx->n_window);
         read_safe(loader, vctx->n_context);
@@ -4899,17 +4915,25 @@ struct whisper_vad_context * whisper_vad_init_with_params(
         read_safe(loader, hparams.final_conv_in);
         read_safe(loader, hparams.final_conv_out);
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: n_encoder_layers = %d\n", __func__, hparams.n_encoder_layers);
+    #endif
         for (int32_t i = 0; i < hparams.n_encoder_layers; i++) {
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: encoder_in_channels[%d] = %d\n", __func__, i, hparams.encoder_in_channels[i]);
+    #endif
         }
         for (int32_t i = 0; i < hparams.n_encoder_layers; i++) {
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: encoder_out_channels[%d] = %d\n", __func__, i, hparams.encoder_out_channels[i]);
+    #endif
         }
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: lstm_input_size = %d\n", __func__, hparams.lstm_input_size);
         WHISPER_LOG_INFO("%s: lstm_hidden_size = %d\n", __func__, hparams.lstm_hidden_size);
         WHISPER_LOG_INFO("%s: final_conv_in = %d\n", __func__, hparams.final_conv_in);
         WHISPER_LOG_INFO("%s: final_conv_out = %d\n", __func__, hparams.final_conv_out);
+    #endif
     }
 
     // 1 STFT tensor, 4*2 encoder tensors, 4 LSTM tensors, 2 final output tensors
@@ -5061,7 +5085,9 @@ struct whisper_vad_context * whisper_vad_init_with_params(
             model.buffers.emplace_back(buf);
 
             size_t size_main = ggml_backend_buffer_get_size(buf);
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: %12s total size = %8.2f MB\n", __func__, ggml_backend_buffer_name(buf), size_main / 1e6);
+    #endif
         }
     }
 
@@ -5141,7 +5167,9 @@ struct whisper_vad_context * whisper_vad_init_with_params(
             model.n_loaded++;
         }
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: model size    = %7.2f MB\n", __func__, total_size/1e6);
+    #endif
 
         if (model.n_loaded == 0) {
             WHISPER_LOG_WARN("%s: WARN no tensors loaded from model file - assuming empty model for testing\n", __func__);
@@ -5169,14 +5197,17 @@ bool whisper_vad_detect_speech(
         n_chunks += 1;  // Add one more chunk for remaining samples.
     }
 
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: detecting speech in %d samples\n", __func__, n_samples);
     WHISPER_LOG_INFO("%s: n_chunks: %d\n", __func__, n_chunks);
-
+    #endif
     // Reset LSTM hidden/cell states
     ggml_backend_buffer_clear(vctx->buffer, 0);
 
     vctx->probs.resize(n_chunks);
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: props size: %u\n", __func__, n_chunks);
+    #endif
 
     std::vector<float> window(vctx->n_window, 0.0f);
 
@@ -5202,7 +5233,9 @@ bool whisper_vad_detect_speech(
         const int chunk_len = idx_end - idx_start;
 
         if (chunk_len < vctx->n_window) {
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: chunk_len: %d < n_window: %d\n", __func__, chunk_len, vctx->n_window);
+    #endif
             std::vector<float> partial_chunk(vctx->n_window, 0.0f);
             std::copy(samples + idx_start, samples + idx_end, partial_chunk.begin());
 
@@ -5235,8 +5268,9 @@ bool whisper_vad_detect_speech(
     }
 
     vctx->t_vad_us += ggml_time_us() - t_start_vad_us;
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: vad time = %.2f ms processing %d samples\n", __func__, 1e-3f * vctx->t_vad_us, n_samples);
-
+    #endif
     ggml_backend_sched_reset(sched);
 
     return true;
@@ -5265,7 +5299,9 @@ float * whisper_vad_probs(struct whisper_vad_context * vctx) {
 struct whisper_vad_segments * whisper_vad_segments_from_probs(
         struct whisper_vad_context *  vctx,
                 whisper_vad_params    params) {
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: detecting speech timestamps using %d probabilities\n", __func__, whisper_vad_n_probs(vctx));
+    #endif
 
     int     n_probs                 = whisper_vad_n_probs(vctx);
     float * probs                   = whisper_vad_probs(vctx);
@@ -5416,23 +5452,27 @@ struct whisper_vad_segments * whisper_vad_segments_from_probs(
                 merged_count++;
             }
         }
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: Merged %d adjacent segments, now have %d segments\n",
                          __func__, merged_count, (int) speeches.size());
+    #endif
     }
 
     // Double-check for minimum speech duration
     for (int i = 0; i < (int) speeches.size(); i++) {
         if (speeches[i].end - speeches[i].start < min_speech_samples) {
+    #ifndef WHISPER_BINDINGS_FLAT
             WHISPER_LOG_INFO("%s: Removing segment %d (too short: %d samples)\n",
                             __func__, i, speeches[i].end - speeches[i].start);
-
+    #endif
             speeches.erase(speeches.begin() + i);
             i--;
         }
     }
 
+    #ifndef WHISPER_BINDINGS_FLAT
     WHISPER_LOG_INFO("%s: Final speech segments after filtering: %d\n", __func__, (int) speeches.size());
-
+    #endif
     // Allocate final segments
     std::vector<whisper_vad_segment> segments;
     if (speeches.size() > 0) {
@@ -5483,8 +5523,10 @@ struct whisper_vad_segments * whisper_vad_segments_from_probs(
         segments[i].start = samples_to_cs(speeches[i].start);
         segments[i].end   = samples_to_cs(speeches[i].end);
 
+    #ifndef WHISPER_BINDINGS_FLAT
         WHISPER_LOG_INFO("%s: VAD segment %d: start = %.2f, end = %.2f (duration: %.2f)\n",
                         __func__, i, segments[i].start/100.0, segments[i].end/100.0, (segments[i].end - segments[i].start)/100.0);
+    #endif                            
     }
 
     whisper_vad_segments * vad_segments = new whisper_vad_segments;
